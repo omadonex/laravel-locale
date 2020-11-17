@@ -1,0 +1,41 @@
+{
+    "name": "omadonex/laravel-locale",
+    "description": "Localization for laravel",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Yuriy Arkhipov",
+            "email": "omadonex@yandex.ru"
+        }
+    ],
+    "require-dev": {
+        "umpirsky/country-list": "^2.0",
+        "umpirsky/language-list": "^1.1",
+        "umpirsky/currency-list": "^1.1"
+    },
+    "require": {
+        "illuminate/console": "~8.0",
+        "illuminate/support": "~8.0",
+        "omadonex/laravel-support": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "Omadonex\\LaravelLocale\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Omadonex\\LaravelLocale\\Providers\\LocaleServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/omadonex/laravel-support.git"
+        }
+    ]
+}
