@@ -34,8 +34,8 @@
     "prefer-stable": true,
     "repositories": [
         {
-            "type": "vcs",
-            "url": "https://github.com/omadonex/laravel-support.git"
+            "type": "path",
+            "url": "../laravel-support"
         }
     ]
 }

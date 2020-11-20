@@ -3,12 +3,13 @@
 return [
     'langList' => [
         'en',
-        'ru',
     ],
 
     'currencyList' => [
-        'eur',
-        'rub',
-        'usd',
+        'USD',
+    ],
+
+    'currencyDefault' => [
+        'USD',
     ],
 ];

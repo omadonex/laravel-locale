@@ -9,6 +9,7 @@ class Locale implements ILocale
     const ENTRY_AUTH = 'auth';
     const ENTRY_APP = 'app';
 
+    private $app;
     private $language;
     private $modules;
 
@@ -16,54 +17,91 @@ class Locale implements ILocale
 
     public function __construct($modules = [])
     {
+        $this->app = app();
         $this->modules = $modules;
         $this->language = null;
     }
 
-    public function getDefaultCountry()
+    /**
+     * @return string
+     */
+    public function getLangDefault(): string
     {
-        return config('omx.locale.country.default');
+        return config('app.locale');
     }
 
-    public function getDefaultCurrency()
+    /**
+     * @return string
+     */
+    public function getLangCurrent(): string
     {
-        return config('omx.locale.currency.default');
+        return $this->app->getLocale();
     }
 
-    public function getDefaultLanguage()
+    /**
+     * @return string
+     */
+    public function getCurrencyDefault(): string
     {
-        return config('app.fallback_locale');
+        return config('omx.locale.currencyDefault');
     }
 
-    public function getCurrCountry()
+    /**
+     * @return array
+     */
+    protected function getLangSupportedList(): array
     {
-        $localeKey = $this->getCurrLanguage();
-        if (!in_array($localeKey, array_keys($this->getSupportedCountries()))) {
-            return $this->getDefaultCountry();
+        return config('omx.locale.langList');
+    }
+
+    /**
+     * @return array
+     */
+    protected function getCurrencySupportedList(): array
+    {
+        return config('omx.locale.currencyList');
+    }
+
+    /**
+     * @param array $langList
+     * @param string|null $langTrans
+     * @param bool $addNative
+     *
+     * @return array
+     */
+    public function getLangList(array $langList = [], string $langTrans = null, bool $addNative = true): array
+    {
+        $langSupportedList = $this->getLangSupportedList();
+        $langList = $langList ? array_intersect($langList, $langSupportedList) : $langSupportedList;
+        if (($langTrans === null) || !in_array($langTrans, $langSupportedList)) {
+            $langTrans = $this->getLangDefault();
         }
 
-        return $localeKey;
-    }
-
-    public function getCurrLanguage()
-    {
-        return $this->language;
-    }
-
-    public function getCountryList($countryKeys = [])
-    {
-        $countries = $this->getSupportedCountries();
-        $keys = ($countryKeys === []) ? array_keys($countries) : $countryKeys;
-        $countryList = [];
-        foreach ($keys as $key) {
-            $countryList[] = [
-                'key' => $key,
-                'name' => $countries[$key]['name'],
-                'native' => $countries[$key]['native'],
+        $list = [];
+        foreach ($langList as $lang) {
+            $item = [
+                'lang' => $lang,
+                'name' => config("omx.locale.{$langTrans}.lang")[$lang],
             ];
+
+            if ($addNative) {
+                $item['native'] = config("omx.locale.{$lang}.lang")[$lang];
+            }
+
+            $list[] = $item;
         }
 
-        return $countryList;
+        return $list;
+    }
+
+    public function getCountryList(string $langTrans = null): array
+    {
+        $langSupportedList = $this->getLangSupportedList();
+        if (($langTrans === null) || !in_array($langTrans, $langSupportedList)) {
+            $langTrans = $this->getLangDefault();
+        }
+
+        return config("omx.locale.{$langTrans}.country");
     }
 
     public function getCurrencyList()
@@ -121,20 +159,7 @@ class Locale implements ILocale
         return $this->getLanguageDataEntry(self::ENTRY_AUTH, $onlyCurrLang);
     }
 
-    protected function getSupportedCountries()
-    {
-        return config('omx.locale.country.supported');
-    }
 
-    protected function getSupportedCurrencies()
-    {
-        return config('omx.locale.currency.supported');
-    }
-
-    protected function getSupportedLocales()
-    {
-        return config('omx.locale.lang.supported');
-    }
 
     protected function setCurrentLocale($language)
     {
