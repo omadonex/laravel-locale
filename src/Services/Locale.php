@@ -12,6 +12,8 @@ class Locale implements ILocale
     private $app;
     private $language;
     private $modules;
+    private $langList;
+    private $currencyList;
 
     protected $entriesModules = [];
 
@@ -19,7 +21,9 @@ class Locale implements ILocale
     {
         $this->app = app();
         $this->modules = $modules;
-        $this->language = null;
+
+        $this->langList = $this->getLangSupportedList();
+        $this->currencyList = $this->getCurrencySupportedList();
     }
 
     /**
@@ -63,6 +67,19 @@ class Locale implements ILocale
     }
 
     /**
+     * @param string|null $langTrans
+     * @return string
+     */
+    private function getLangTransFact(string $langTrans = null): string
+    {
+        if (($langTrans === null) || !in_array($langTrans, $this->langList)) {
+            return $this->getLangDefault();
+        }
+
+        return $langTrans;
+    }
+
+    /**
      * @param array $langList
      * @param string|null $langTrans
      * @param bool $addNative
@@ -71,11 +88,8 @@ class Locale implements ILocale
      */
     public function getLangList(array $langList = [], string $langTrans = null, bool $addNative = true): array
     {
-        $langSupportedList = $this->getLangSupportedList();
-        $langList = $langList ? array_intersect($langList, $langSupportedList) : $langSupportedList;
-        if (($langTrans === null) || !in_array($langTrans, $langSupportedList)) {
-            $langTrans = $this->getLangDefault();
-        }
+        $langList = $langList ? array_intersect($langList, $this->langList) : $this->langList;
+        $langTrans = $this->getLangTransFact($langTrans);
 
         $list = [];
         foreach ($langList as $lang) {
@@ -96,16 +110,31 @@ class Locale implements ILocale
 
     public function getCountryList(string $langTrans = null): array
     {
-        $langSupportedList = $this->getLangSupportedList();
-        if (($langTrans === null) || !in_array($langTrans, $langSupportedList)) {
-            $langTrans = $this->getLangDefault();
-        }
+        $langTrans = $this->getLangTransFact($langTrans);
 
         return config("omx.locale.{$langTrans}.country");
     }
 
-    public function getCurrencyList()
+    public function getCurrencyList(array $currencyList = [], string $langTrans = null, $addNative = true): array
     {
+        $langTrans = $this->getLangTransFact($langTrans);
+
+        $list = [];
+        foreach ($langList as $lang) {
+            $item = [
+                'lang' => $lang,
+                'name' => config("omx.locale.{$langTrans}.lang")[$lang],
+            ];
+
+            if ($addNative) {
+                $item['native'] = config("omx.locale.{$lang}.lang")[$lang];
+            }
+
+            $list[] = $item;
+        }
+
+        return $list;
+
         return $this->getSupportedCurrencies();
     }
 
