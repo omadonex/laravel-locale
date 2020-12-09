@@ -2,27 +2,33 @@
 
 namespace Omadonex\LaravelLocale\Services;
 
-use Omadonex\LaravelLocale\Interfaces\ILocale;
+use Omadonex\LaravelLocale\Interfaces\ILocaleService;
+use Omadonex\LaravelSupport\Classes\Utils\UtilsCustom;
 
-class Locale implements ILocale
+class LocaleService implements ILocaleService
 {
     const ENTRY_AUTH = 'auth';
     const ENTRY_APP = 'app';
 
     private $app;
-    private $language;
     private $modules;
     private $langList;
+    private $langAllList;
     private $currencyList;
 
     protected $entriesModules = [];
 
+    /**
+     * Locale constructor.
+     * @param array $modules
+     */
     public function __construct($modules = [])
     {
         $this->app = app();
         $this->modules = $modules;
 
         $this->langList = $this->getLangSupportedList();
+        $this->langAllList = config('omx.locale.lang');
         $this->currencyList = $this->getCurrencySupportedList();
     }
 
@@ -31,7 +37,7 @@ class Locale implements ILocale
      */
     public function getLangDefault(): string
     {
-        return config('app.locale');
+        return config('app.fallback_locale');
     }
 
     /**
@@ -67,16 +73,17 @@ class Locale implements ILocale
     }
 
     /**
-     * @param string|null $langTrans
+     * @param string|null $lang
+     *
      * @return string
      */
-    private function getLangTransFact(string $langTrans = null): string
+    private function getLangFact(string $lang = null): string
     {
-        if (($langTrans === null) || !in_array($langTrans, $this->langList)) {
+        if (($lang === null) || !$this->isLangSupported($lang)) {
             return $this->getLangDefault();
         }
 
-        return $langTrans;
+        return $lang;
     }
 
     /**
@@ -89,7 +96,7 @@ class Locale implements ILocale
     public function getLangList(array $langList = [], string $langTrans = null, bool $addNative = true): array
     {
         $langList = $langList ? array_intersect($langList, $this->langList) : $this->langList;
-        $langTrans = $this->getLangTransFact($langTrans);
+        $langTrans = $this->getLangFact($langTrans);
 
         $list = [];
         foreach ($langList as $lang) {
@@ -108,93 +115,194 @@ class Locale implements ILocale
         return $list;
     }
 
+    /**
+     * @param array $currencyList
+     * @param string|null $langTrans
+     *
+     * @return array
+     */
+    public function getCurrencyList(array $currencyList = [], string $langTrans = null): array
+    {
+        $currencyList = $currencyList ? array_intersect($currencyList, $this->currencyList) : $this->currencyList;
+        $langTrans = $this->getLangFact($langTrans);
+
+        $list = [];
+        foreach ($currencyList as $currency) {
+            $list[] = [
+                'currency' => $currency,
+                'name' => config("omx.locale.{$langTrans}.currency")[$currency],
+            ];
+        }
+
+        return $list;
+    }
+
+    /**
+     * @param string|null $langTrans
+     *
+     * @return array
+     */
     public function getCountryList(string $langTrans = null): array
     {
-        $langTrans = $this->getLangTransFact($langTrans);
+        $langTrans = $this->getLangFact($langTrans);
 
         return config("omx.locale.{$langTrans}.country");
     }
 
-    public function getCurrencyList(array $currencyList = [], string $langTrans = null, $addNative = true): array
+    /**
+     * @param string|null $lang
+     */
+    public function setLang(string $lang = null): void
     {
-        $langTrans = $this->getLangTransFact($langTrans);
+        $lang = $this->getLangFact($lang);
+        if ($lang !== $this->getLangCurrent()) {
+            $this->app->setLocale($lang);
+            //Carbon::setLocale($language);
+        }
+    }
 
-        $list = [];
-        foreach ($langList as $lang) {
-            $item = [
-                'lang' => $lang,
-                'name' => config("omx.locale.{$langTrans}.lang")[$lang],
-            ];
+    /**
+     * @return string|null
+     */
+    public function setLangFromRoute(): ?string
+    {
+        $lang = $this->app->request->segment(1);
+        if ($lang && $this->isLangCorrect($lang)) {
+            $this->setLang($this->isLangSupported($lang) ? $lang : null);
 
-            if ($addNative) {
-                $item['native'] = config("omx.locale.{$lang}.lang")[$lang];
+            return $lang;
+        }
+
+        $this->setLang();
+
+        return null;
+    }
+
+    /**
+     * @param string $lang
+     * @return bool
+     */
+    public function isLangCorrect(string $lang): bool
+    {
+        return in_array($lang, $this->langAllList);
+    }
+
+    /**
+     * @param string $lang
+     * @return bool
+     */
+    public function isLangSupported(string $lang): bool
+    {
+        return in_array($lang, $this->langList);
+    }
+
+    /**
+     * @return array
+     */
+    public function getLangAllList(): array
+    {
+        return $this->langAllList;
+    }
+
+    /**
+     * @param string $url
+     * @return string
+     */
+    public function getUrlWithoutLang(string $url): string
+    {
+        $parsed = parse_url($url);
+        if (!array_key_exists('path', $parsed)) {
+            return $url;
+        }
+
+        $segments = explode('/', $parsed['path']);
+        $lang = $segments[1];
+
+        if ($this->isLangCorrect($lang)) {
+            if (count($segments) > 2) {
+                return preg_replace("/\/{$lang}\//", '/', $url, 1);
             }
 
-            $list[] = $item;
+            return preg_replace("/\/{$lang}/", '', $url, 1);
+        }
+
+        return $url;
+    }
+
+    /**
+     * @param string $currentUrl
+     * @return array
+     */
+    public function getRouteLangList(string $currentUrl): array
+    {
+        $currentUrlWithoutLang = $this->getUrlWithoutLang($currentUrl);
+        $parsed = parse_url($currentUrlWithoutLang);
+        $path = $parsed['path'] ?? '';
+
+        $list = [];
+        foreach ($this->getLangList() as $langItem) {
+            if ($langItem['lang'] !== $this->getLangDefault()) {
+                $parsed['path'] = "/{$langItem['lang']}{$path}";
+            } else {
+                $parsed['path'] = $path;
+            }
+
+            $list[] = [
+                'lang' => $langItem['lang'],
+                'name' => $langItem['native'],
+                'url' => UtilsCustom::buildUrl($parsed),
+                'flag' => $this->getFlag($langItem['lang']),
+            ];
         }
 
         return $list;
-
-        return $this->getSupportedCurrencies();
     }
 
-    public function getLanguageList($languageKeys = [])
+    /**
+     * @param string $name
+     * @param array $parameters
+     * @param bool $absolute
+     *
+     * @return string
+     */
+    public function route(string $name, array $parameters = [], $absolute = true): string
     {
-        $langs = $this->getSupportedLocales();
-        $keys = ($languageKeys === []) ? array_keys($langs) : array_intersect($languageKeys, array_keys($langs));
-        $languageList = [];
-        foreach ($keys as $key) {
-            $languageList[] = [
-                'key' => $key,
-                'name' => $langs[$key]['name'],
-                'native' => $langs[$key]['native'],
-            ];
+        $url = route($name, $parameters, $absolute);
+
+        $lang = $this->getLangCurrent();
+        if ($lang === $this->getLangDefault()) {
+            return $url;
         }
 
-        return $languageList;
+        $parsed = parse_url($url);
+        $parsed['path'] = "/{$lang}{$parsed['path']}";
+
+        return UtilsCustom::buildUrl($parsed);
     }
 
-    public function getCountryNative($country = null)
+    /**
+     * @param string $lang
+     *
+     * @return string
+     */
+    public function getFlag(string $lang): string
     {
-        return $this->getSupportedCountries()[$country ?: $this->getCurrCountry()]['native'];
-    }
-
-    public function getLanguageNative($language = null)
-    {
-        return $this->getSupportedLocales()[$language ?: $this->getCurrLanguage()]['native'];
-    }
-
-    public function setLanguage($language)
-    {
-        if ($language) {
-            if (!in_array($language, array_keys($this->getSupportedLocales()))) {
-                $language = $this->getDefaultLanguage();
-            }
-
-            $this->language = $language;
-            $this->setCurrentLocale($language);
-
-            Carbon::setLocale($language);
+        switch ($lang) {
+            case 'en': return 'us';
         }
+
+        return $lang;
     }
 
-    public function getLanguageDataApp($onlyCurrLang = true)
+    /**
+     * @return string
+     */
+    public function getFlagCurrent(): string
     {
-        return $this->getLanguageDataEntry(self::ENTRY_APP, $onlyCurrLang);
+        return $this->getFlag($this->getLangCurrent());
     }
 
-    public function getLanguageDataAuth($onlyCurrLang = true)
-    {
-        return $this->getLanguageDataEntry(self::ENTRY_AUTH, $onlyCurrLang);
-    }
-
-
-
-    protected function setCurrentLocale($language)
-    {
-        App::setLocale($language);
-    }
-
+    /*
     protected function getLanguageDataEntry($entry, $onlyCurrLang = true)
     {
         $currLang = $this->getCurrLanguage();
@@ -316,4 +424,5 @@ class Locale implements ILocale
 
         return $trans;
     }
+    */
 }

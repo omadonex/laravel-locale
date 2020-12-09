@@ -6,10 +6,8 @@ return [
     ],
 
     'currencyList' => [
-        'USD',
+        'usd',
     ],
 
-    'currencyDefault' => [
-        'USD',
-    ],
+    'currencyDefault' => 'usd',
 ];
