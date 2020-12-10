@@ -168,7 +168,8 @@ class LocaleService implements ILocaleService
     {
         $lang = $this->app->request->segment(1);
         if ($lang && $this->isLangCorrect($lang)) {
-            $this->setLang($this->isLangSupported($lang) ? $lang : null);
+            $lang = $this->isLangSupported($lang) ? $lang : null;
+            $this->setLang($lang);
 
             return $lang;
         }
@@ -260,12 +261,12 @@ class LocaleService implements ILocaleService
 
     /**
      * @param string $name
-     * @param array $parameters
+     * @param $parameters
      * @param bool $absolute
      *
      * @return string
      */
-    public function route(string $name, array $parameters = [], $absolute = true): string
+    public function route(string $name, $parameters = [], bool $absolute = true): string
     {
         $url = route($name, $parameters, $absolute);
 
@@ -278,18 +279,6 @@ class LocaleService implements ILocaleService
         $parsed['path'] = "/{$lang}{$parsed['path']}";
 
         return UtilsCustom::buildUrl($parsed);
-    }
-
-    /**
-     * @param string $name
-     * @param array $parameters
-     * @param bool $absolute
-     *
-     * @return bool
-     */
-    public function isRoute(string $name, array $parameters = [], $absolute = true): bool
-    {
-        return route($name, $parameters, $absolute) === url()->full();
     }
 
     /**
