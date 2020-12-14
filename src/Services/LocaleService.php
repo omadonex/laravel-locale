@@ -494,12 +494,12 @@ class LocaleService implements ILocaleService
                 }
 
                 $data[$dataKey] = [
-                    'breadcrumb' => trans("{$transNs}.breadcrumb"),
-                    'header' => trans("{$transNs}.header"),
+                    'breadcrumb' => __("{$transNs}.breadcrumb", [], $langDefault),
+                    'header' => __("{$transNs}.header", [], $langDefault),
                     'seo' => [
-                        'title' => trans("{$transNs}.seo.title"),
-                        'description' => trans("{$transNs}.seo.description"),
-                        'keywords' => trans("{$transNs}.seo.keywords"),
+                        'title' => __("{$transNs}.seo.title", [], $langDefault),
+                        'description' => __("{$transNs}.seo.description", [], $langDefault),
+                        'keywords' => __("{$transNs}.seo.keywords", [], $langDefault),
                     ],
                 ];
             }
