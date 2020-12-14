@@ -16,9 +16,14 @@ class LocaleServiceProvider extends ServiceProvider
     {
         $pathRoot = realpath(__DIR__.'/../..');
 
+        $this->loadTranslationsFrom("{$pathRoot}/resources/lang", 'locale');
+
         $this->publishes([
             "{$pathRoot}/config/locale.php" => config_path('omx/locale.php'),
         ], 'config');
+        $this->publishes([
+            "{$pathRoot}/resources/lang" => resource_path('lang/vendor/locale'),
+        ], 'translations');
 
         if ($this->app->runningInConsole()) {
             $this->commands([

@@ -4,6 +4,8 @@ namespace Omadonex\LaravelLocale\Interfaces;
 
 interface ILocaleService
 {
+    const PROP_LANG_DEFAULT = 'langDefault';
+
     /**
      * Returns default language key
      *

@@ -15,6 +15,7 @@ class LocaleService implements ILocaleService
     private $langList;
     private $langAllList;
     private $currencyList;
+    private $pagesData;
 
     protected $entryMap = [];
 
@@ -30,6 +31,7 @@ class LocaleService implements ILocaleService
         $this->langList = $this->getLangSupportedList();
         $this->langAllList = config('omx.locale.lang');
         $this->currencyList = $this->getCurrencySupportedList();
+        $this->pagesData = $this->evalPagesData();
     }
 
     /**
@@ -449,5 +451,70 @@ class LocaleService implements ILocaleService
         }
 
         return $trans;
+    }
+
+    private function evalPagesData()
+    {
+        $langDefault = $this->getLangDefault();
+
+        $pages = [];
+        $pagesFilePath = resource_path("lang/{$langDefault}/pages.php");
+        if (file_exists($pagesFilePath)) {
+            $keys = array_keys(include($pagesFilePath));
+            $pages['app'] = $keys;
+        }
+
+        foreach ($this->moduleList as $module) {
+            $pagesFilePathPart = "Resources/lang/{$langDefault}/pages.php";
+            $pagesFilePath = $module->getExtraPath($pagesFilePathPart);
+            if (file_exists($pagesFilePath)) {
+                $keys = array_keys(include($pagesFilePath));
+                $pages[$module->getLowerName()] = $keys;
+            }
+        }
+
+        $data = [
+            'default' => [
+                'breadcrumb' => __('locale::app.name'),
+                'header' => __('locale::app.name'),
+                'seo' => [
+                    'title' => __('locale::app.title'),
+                    'description' => __('locale::app.title'),
+                    'keywords' => __('locale::app.name'),
+                ],
+            ],
+        ];
+
+        foreach ($pages as $ns => $keys) {
+            foreach ($keys as $key) {
+                $dataKey = $ns.ucfirst($key);
+                $transNs = "pages.{$key}";
+                if ($ns !== 'app') {
+                    $transNs = "{$ns}::{$transNs}";
+                }
+
+                $data[$dataKey] = [
+                    'breadcrumb' => trans("{$transNs}.breadcrumb"),
+                    'header' => trans("{$transNs}.header"),
+                    'seo' => [
+                        'title' => trans("{$transNs}.seo.title"),
+                        'description' => trans("{$transNs}.seo.description"),
+                        'keywords' => trans("{$transNs}.seo.keywords"),
+                    ],
+                ];
+            }
+        }
+
+        return $data;
+    }
+
+    public function getPagesData()
+    {
+        return $this->pagesData;
+    }
+
+    public function getPageData($page)
+    {
+        return $this->pagesData[$page] ?? $this->pagesData['default'];
     }
 }
