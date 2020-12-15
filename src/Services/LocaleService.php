@@ -475,12 +475,12 @@ class LocaleService implements ILocaleService
 
         $data = [
             'default' => [
-                'breadcrumb' => __('locale::app.name'),
-                'header' => __('locale::app.name'),
+                'breadcrumb' => trans('locale::app.name'),
+                'header' => trans('locale::app.name'),
                 'seo' => [
-                    'title' => __('locale::app.title'),
-                    'description' => __('locale::app.title'),
-                    'keywords' => __('locale::app.name'),
+                    'title' => trans('locale::app.title'),
+                    'description' => trans('locale::app.title'),
+                    'keywords' => trans('locale::app.name'),
                 ],
             ],
         ];
@@ -494,12 +494,12 @@ class LocaleService implements ILocaleService
                 }
 
                 $data[$dataKey] = [
-                    'breadcrumb' => __("{$transNs}.breadcrumb", [], $langDefault),
-                    'header' => __("{$transNs}.header", [], $langDefault),
+                    'breadcrumb' => trans("{$transNs}.breadcrumb"),
+                    'header' => trans("{$transNs}.header"),
                     'seo' => [
-                        'title' => __("{$transNs}.seo.title", [], $langDefault),
-                        'description' => __("{$transNs}.seo.description", [], $langDefault),
-                        'keywords' => __("{$transNs}.seo.keywords", [], $langDefault),
+                        'title' => trans("{$transNs}.seo.title"),
+                        'description' => trans("{$transNs}.seo.description"),
+                        'keywords' => trans("{$transNs}.seo.keywords"),
                     ],
                 ];
             }
