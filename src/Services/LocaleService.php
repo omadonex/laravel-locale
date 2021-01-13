@@ -7,9 +7,6 @@ use Omadonex\LaravelSupport\Classes\Utils\UtilsCustom;
 
 class LocaleService implements ILocaleService
 {
-    const ENTRY_AUTH = 'auth';
-    const ENTRY_ALL = 'all';
-
     private $app;
     private $moduleList;
     private $langList;
@@ -305,41 +302,6 @@ class LocaleService implements ILocaleService
 
     /**
      * @param string $entry
-     * @param string|null $lang
-     *
-     * @return array
-     */
-    public function getEntryData(string $entry = self::ENTRY_ALL, string $lang = null): array
-    {
-        $data = [];
-        $entryModuleList = $this->getEntryMap($entry);
-
-        if (count($entryModuleList)) {
-            if ($entryModuleList[0] === '*') {
-                $entryModuleList = array_keys($this->moduleList);
-            } elseif ($entryModuleList[0] === '^') {
-                $entryModuleList = array_diff(array_keys($this->moduleList), array_slice($entryModuleList, 0));
-            }
-        }
-
-        $langList = $lang ? [$lang] : $this->getLangSupportedList();
-        foreach ($langList as $langItem) {
-            $data[$langItem]['app'] = $this->getTranslations($langItem);
-            $data[$langItem]['vendor'] = $this->getTranslationsVendor($langItem);
-            foreach ($entryModuleList as $moduleKey) {
-                $module = $this->moduleList[$moduleKey];
-                $trans = $this->getTranslations($langItem, $module);
-                if (!is_null($trans)) {
-                    $data[$langItem][$module->getLowerName()] = $trans;
-                }
-            }
-        }
-        
-        return $data;
-    }
-
-    /**
-     * @param string $entry
      *
      * @return array
      */
@@ -352,6 +314,52 @@ class LocaleService implements ILocaleService
 
         if (array_key_exists($entry, $data)) {
             return $data[$entry];
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param string|null $lang
+     * @param string $entry
+     *
+     * @return array
+     */
+    public function getEntryData(string $lang = null, string $entry = self::ENTRY_ALL): array
+    {
+        $totalData = $this->getTotalData($lang);
+        $entryList = $this->getEntryMap($entry);
+
+//        if (count($entryModuleList)) {
+//            if ($entryModuleList[0] === '*') {
+//                $entryModuleList = array_keys($this->moduleList);
+//            } elseif ($entryModuleList[0] === '^') {
+//                $entryModuleList = array_diff(array_keys($this->moduleList), array_slice($entryModuleList, 0));
+//            }
+//        }
+//
+
+    }
+
+    /**
+     * @param string|null $lang
+     *
+     * @return array
+     */
+    public function getTotalData(string $lang = null): array
+    {
+        $data = [];
+
+        $langList = $lang ? [$lang] : $this->getLangSupportedList();
+        foreach ($langList as $langItem) {
+            $data[$langItem]['app'] = $this->getTranslations($langItem);
+            $data[$langItem]['vendor'] = $this->getTranslationsVendor($langItem);
+            foreach ($this->moduleList as $module) {
+                $trans = $this->getTranslations($langItem, $module);
+                if (!is_null($trans)) {
+                    $data[$langItem][$module->getLowerName()] = $trans;
+                }
+            }
         }
 
         return $data;

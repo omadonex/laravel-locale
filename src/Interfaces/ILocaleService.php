@@ -6,6 +6,9 @@ interface ILocaleService
 {
     const PROP_LANG_DEFAULT = 'langDefault';
 
+    const ENTRY_AUTH = 'auth';
+    const ENTRY_ALL = 'all';
+
     /**
      * Returns default language key
      *
